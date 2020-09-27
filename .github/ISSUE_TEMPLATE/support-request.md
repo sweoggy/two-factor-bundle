@@ -8,23 +8,18 @@ assignees: ''
 ---
 
 <!--
-Please check the troubleshooting guide first: https://github.com/scheb/two-factor-bundle/blob/master/Resources/doc/troubleshooting.md
+Please check the troubleshooting guide first: https://github.com/scheb/two-factor-bundle/blob/4.x/Resources/doc/troubleshooting.md
 -->
 
 **Bundle version**: x.y.z
 **Symfony version**: x.y.z
 
 **Description**
-<!-- A clear and concise description of what the bug is. If you used the troubleshooting guide, how far did you reach and what did you discover? -->
-
-**To Reproduce**
 <!--
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+Please describe what you're trying to do and where you're getting stuck. Which approaches did you try out so far?
+If you used the troubleshooting guide, how far did you reach and what did you discover?
+Please provide the content of your security.yaml.
 -->
 
-**Additional Context**  
+**Additional Context**
 <!-- Optional: Any other context to help understanding the problem: your bundle and security configuration, log messages, screenshots, etc. -->

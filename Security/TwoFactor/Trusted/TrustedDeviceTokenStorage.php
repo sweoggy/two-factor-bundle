@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Scheb\TwoFactorBundle\Security\TwoFactor\Trusted;
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 class TrustedDeviceTokenStorage
@@ -16,9 +17,9 @@ class TrustedDeviceTokenStorage
     private $requestStack;
 
     /**
-     * @var JwtTokenEncoder
+     * @var TrustedDeviceTokenEncoder
      */
-    private $jwtTokenEncoder;
+    private $tokenGenerator;
 
     /**
      * @var string
@@ -26,12 +27,7 @@ class TrustedDeviceTokenStorage
     private $cookieName;
 
     /**
-     * @var int
-     */
-    private $trustedTokenLifetime;
-
-    /**
-     * @var TrustedDeviceToken[]
+     * @var TrustedDeviceToken[]|null
      */
     private $trustedTokenList;
 
@@ -40,12 +36,11 @@ class TrustedDeviceTokenStorage
      */
     private $updateCookie = false;
 
-    public function __construct(RequestStack $requestStack, JwtTokenEncoder $jwtTokenEncoder, string $cookieName, int $trustedTokenLifetime)
+    public function __construct(RequestStack $requestStack, TrustedDeviceTokenEncoder $tokenGenerator, string $cookieName)
     {
-        $this->jwtTokenEncoder = $jwtTokenEncoder;
         $this->requestStack = $requestStack;
+        $this->tokenGenerator = $tokenGenerator;
         $this->cookieName = $cookieName;
-        $this->trustedTokenLifetime = $trustedTokenLifetime;
     }
 
     public function hasUpdatedCookie(): bool
@@ -55,7 +50,7 @@ class TrustedDeviceTokenStorage
 
     public function getCookieValue(): ?string
     {
-        return implode(self::TOKEN_DELIMITER, array_map(function (TrustedDeviceToken $token) {
+        return implode(self::TOKEN_DELIMITER, array_map(static function (TrustedDeviceToken $token): string {
             return $token->serialize();
         }, $this->getTrustedTokenList()));
     }
@@ -69,6 +64,7 @@ class TrustedDeviceTokenStorage
                 }
 
                 // Remove the trusted token, because the version is outdated
+                /** @psalm-suppress PossiblyNullArrayAccess */
                 unset($this->trustedTokenList[$key]);
                 $this->updateCookie = true;
             }
@@ -82,24 +78,13 @@ class TrustedDeviceTokenStorage
         foreach ($this->getTrustedTokenList() as $key => $token) {
             if ($token->authenticatesRealm($username, $firewall)) {
                 // Remove the trusted token, because it is to be replaced with a newer one
+                /** @psalm-suppress PossiblyNullArrayAccess */
                 unset($this->trustedTokenList[$key]);
             }
         }
 
-        $validUntil = $this->getValidUntil();
-        $jwtToken = $this->jwtTokenEncoder->generateToken($username, $firewall, $version, $validUntil);
-        $this->trustedTokenList[] = new TrustedDeviceToken($jwtToken);
+        $this->trustedTokenList[] = $this->tokenGenerator->generateToken($username, $firewall, $version);
         $this->updateCookie = true;
-    }
-
-    private function getValidUntil(): \DateTime
-    {
-        return $this->getDateTimeNow()->add(new \DateInterval('PT'.$this->trustedTokenLifetime.'S'));
-    }
-
-    protected function getDateTimeNow(): \DateTime
-    {
-        return new \DateTime();
     }
 
     /**
@@ -127,11 +112,11 @@ class TrustedDeviceTokenStorage
         $trustedTokenList = [];
         $trustedTokenEncodedList = explode(self::TOKEN_DELIMITER, $cookie);
         foreach ($trustedTokenEncodedList as $trustedTokenEncoded) {
-            $trustedToken = $this->jwtTokenEncoder->decodeToken($trustedTokenEncoded);
+            $trustedToken = $this->tokenGenerator->decodeToken($trustedTokenEncoded);
             if (!$trustedToken || $trustedToken->isExpired()) {
                 $this->updateCookie = true; // When there are invalid token, update the cookie to remove them
             } else {
-                $trustedTokenList[] = new TrustedDeviceToken($trustedToken);
+                $trustedTokenList[] = $trustedToken;
             }
         }
 
@@ -140,6 +125,16 @@ class TrustedDeviceTokenStorage
 
     private function readCookieValue(): ?string
     {
-        return $this->requestStack->getMasterRequest()->cookies->get($this->cookieName, null);
+        return $this->getRequest()->cookies->get($this->cookieName, null);
+    }
+
+    private function getRequest(): Request
+    {
+        $request = $this->requestStack->getMasterRequest();
+        if (null === $request) {
+            throw new \RuntimeException('No request available');
+        }
+
+        return $request;
     }
 }

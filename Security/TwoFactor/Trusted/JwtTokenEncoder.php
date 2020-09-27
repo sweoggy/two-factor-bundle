@@ -31,7 +31,7 @@ class JwtTokenEncoder
         $this->applicationSecret = $applicationSecret;
     }
 
-    public function generateToken(string $username, string $firewallName, int $version, \DateTime $validUntil): Token
+    public function generateToken(string $username, string $firewallName, int $version, \DateTimeInterface $validUntil): Token
     {
         $builder = (new Builder())
             ->setIssuedAt(time())
@@ -39,7 +39,7 @@ class JwtTokenEncoder
             ->set(self::CLAIM_USERNAME, $username)
             ->set(self::CLAIM_FIREWALL, $firewallName)
             ->set(self::CLAIM_VERSION, $version)
-            ->sign($this->signer, $this->applicationSecret); // creates a signature using "testing" as key
+            ->sign($this->signer, $this->applicationSecret);
 
         return $builder->getToken();
     }

@@ -1,21 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<phpunit bootstrap="./vendor/autoload.php" colors="true">
-
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/schema/9.3.xsd"
+         bootstrap="./vendor/autoload.php"
+         colors="true"
+>
     <testsuites>
         <testsuite name="SchebTwoFactorBundle test suite">
             <directory suffix="Test.php">./Tests</directory>
         </testsuite>
     </testsuites>
 
-    <filter>
-        <whitelist>
+    <coverage>
+        <include>
             <directory>./</directory>
-            <exclude>
-                <directory>./Resources</directory>
-                <directory>./Tests</directory>
-                <directory>./vendor</directory>
-            </exclude>
-        </whitelist>
-    </filter>
+        </include>
+        <exclude>
+            <directory>./Resources</directory>
+            <directory>./Tests</directory>
+            <directory>./vendor</directory>
+        </exclude>
+    </coverage>
 </phpunit>

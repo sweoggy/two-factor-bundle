@@ -6,8 +6,15 @@ Email Authentication
 Install the mailer component:
 
 ```bash
-composer require mailer
+composer require symfony/swiftmailer-bundle
 ```
+
+Alternatively, you can use `symfony/mailer`, but then you *have* to implement a custom mailer class (see below), since
+the default mailer coming with the bundle only works with Swiftmailer.
+
+You may want to upgrade to bundle version 5 (available from [scheb/2fa](https://github.com/scheb/2fa)) as it supports
+`symfony/mailer` out-of-the-box.
+
 
 ## How it works
 
@@ -40,6 +47,8 @@ Your user entity has to implement `Scheb\TwoFactorBundle\Model\Email\TwoFactorIn
 be persisted, so make sure that it is stored in a persisted field.
 
 ```php
+<?php
+
 namespace Acme\DemoBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
@@ -103,6 +112,8 @@ By default the email is plain text and very simple. If you want a different styl
 own mailer service. It must implement `Scheb\TwoFactorBundle\Mailer\AuthCodeMailerInterface`.
 
 ```php
+<?php
+
 namespace Acme\DemoBundle\Mailer;
 
 use Scheb\TwoFactorBundle\Model\Email\TwoFactorInterface;
@@ -129,6 +140,11 @@ scheb_two_factor:
     email:
         mailer: acme.custom_mailer_service
 ```
+## Re-send Authentication Code
+
+When you're using the default authentication code generator that is coming with the bundle, there's an easy way to
+re-send the email with the authentication code. Get/inject service `scheb_two_factor.security.email.code_generator` and
+call method `reSend(\Scheb\TwoFactorBundle\Model\Email\TwoFactorInterface $user)`.
 
 ## Symfony Mailer Component
 

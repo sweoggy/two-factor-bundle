@@ -64,6 +64,10 @@ class FormController
         $this->setPreferredProvider($request, $token);
 
         $providerName = $token->getCurrentTwoFactorProvider();
+        if (null === $providerName) {
+            throw new AccessDeniedException('User is not in a two-factor authentication process.');
+        }
+
         $renderer = $this->providerRegistry->getProvider($providerName)->getFormRenderer();
         $templateVars = $this->getTemplateVars($request, $token);
 
@@ -96,8 +100,10 @@ class FormController
     {
         $config = $this->twoFactorFirewallContext->getFirewallConfig($token->getProviderKey());
         $pendingTwoFactorProviders = $token->getTwoFactorProviders();
-        $displayTrustedOption = $this->trustedFeatureEnabled && (!$config->isMultiFactor() || 1 === count($pendingTwoFactorProviders));
+        $displayTrustedOption = $this->trustedFeatureEnabled && (!$config->isMultiFactor() || 1 === \count($pendingTwoFactorProviders));
         $authenticationException = $this->getLastAuthenticationException($request->getSession());
+        $checkPath = $config->getCheckPath();
+        $isRoute = false === strpos($checkPath, '/');
 
         return [
             'twoFactorProvider' => $token->getCurrentTwoFactorProvider(),
@@ -110,6 +116,8 @@ class FormController
             'isCsrfProtectionEnabled' => $config->isCsrfProtectionEnabled(),
             'csrfParameterName' => $config->getCsrfParameterName(),
             'csrfTokenId' => $config->getCsrfTokenId(),
+            'checkPathRoute' => $isRoute ? $checkPath : null,
+            'checkPathUrl' => $isRoute ? null : $checkPath,
             'logoutPath' => $this->logoutUrlGenerator->getLogoutPath(),
         ];
     }

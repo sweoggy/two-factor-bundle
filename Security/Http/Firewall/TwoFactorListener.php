@@ -36,6 +36,7 @@ class TwoFactorListener
     private const DEFAULT_OPTIONS = [
         'auth_form_path' => TwoFactorFactory::DEFAULT_AUTH_FORM_PATH,
         'check_path' => TwoFactorFactory::DEFAULT_CHECK_PATH,
+        'post_only' => TwoFactorFactory::DEFAULT_POST_ONLY,
         'auth_code_parameter_name' => TwoFactorFactory::DEFAULT_AUTH_CODE_PARAMETER_NAME,
         'trusted_parameter_name' => TwoFactorFactory::DEFAULT_TRUSTED_PARAMETER_NAME,
     ];
@@ -81,7 +82,7 @@ class TwoFactorListener
     private $csrfTokenValidator;
 
     /**
-     * @var string[]
+     * @var array
      */
     private $options;
 
@@ -104,6 +105,7 @@ class TwoFactorListener
      * @var LoggerInterface
      */
     private $logger;
+
     /**
      * @var TwoFactorAccessDecider
      */
@@ -141,12 +143,15 @@ class TwoFactorListener
         $this->twoFactorAccessDecider = $twoFactorAccessDecider;
         $this->eventDispatcher = $eventDispatcher;
         $this->twoFactorTokenFactory = $twoFactorTokenFactory;
-        $this->logger = $logger === null ? new NullLogger() : $logger;
+        $this->logger = $logger ?? new NullLogger();
         $this->trustedDeviceManager = $trustedDeviceManager;
     }
 
     /**
-     * @param $event GetResponseEvent|RequestEvent
+     * @psalm-suppress UndefinedDocblockClass
+     * @psalm-suppress UndefinedClass
+     *
+     * @param GetResponseEvent|RequestEvent $event
      */
     public function __invoke($event)
     {
@@ -181,7 +186,8 @@ class TwoFactorListener
 
     private function isCheckAuthCodeRequest(Request $request): bool
     {
-        return $this->httpUtils->checkRequestPath($request, $this->options['check_path']);
+        return ($this->options['post_only'] ? $request->isMethod('POST') : true)
+            && $this->httpUtils->checkRequestPath($request, $this->options['check_path']);
     }
 
     private function isAuthFormRequest(Request $request): bool
@@ -194,7 +200,7 @@ class TwoFactorListener
         return ParameterBagUtils::getRequestParameterValue($request, $this->options['auth_code_parameter_name']) ?? '';
     }
 
-    private function attemptAuthentication(Request $request, TwoFactorTokenInterface $currentToken): Response
+    private function attemptAuthentication(Request $request, TwoFactorTokenInterface $beginToken): Response
     {
         $authCode = $this->getAuthCodeFromRequest($request);
         try {
@@ -202,24 +208,24 @@ class TwoFactorListener
                 throw new InvalidCsrfTokenException('Invalid CSRF token.');
             }
 
-            $token = $this->twoFactorTokenFactory->create($currentToken->getAuthenticatedToken(), $authCode, $this->firewallName, $currentToken->getTwoFactorProviders());
-            $token->setAttributes($currentToken->getAttributes());
+            $token = $this->twoFactorTokenFactory->create($beginToken->getAuthenticatedToken(), $authCode, $this->firewallName, $beginToken->getTwoFactorProviders());
+            $token->setAttributes($beginToken->getAttributes());
 
             $this->dispatchTwoFactorAuthenticationEvent(TwoFactorAuthenticationEvents::ATTEMPT, $request, $token);
             $resultToken = $this->authenticationManager->authenticate($token);
 
-            return $this->onSuccess($request, $resultToken, $currentToken);
-        } catch (AuthenticationException $failed) {
-            return $this->onFailure($request, $failed);
+            return $this->onSuccess($request, $resultToken, $beginToken);
+        } catch (AuthenticationException $failureException) {
+            return $this->onFailure($request, $beginToken, $failureException);
         }
     }
 
-    private function onFailure(Request $request, AuthenticationException $failed): Response
+    private function onFailure(Request $request, TwoFactorTokenInterface $token, AuthenticationException $failureException): Response
     {
-        $this->logger->info('Two-factor authentication request failed.', ['exception' => $failed]);
-        $this->dispatchTwoFactorAuthenticationEvent(TwoFactorAuthenticationEvents::FAILURE, $request, $this->tokenStorage->getToken());
+        $this->logger->info('Two-factor authentication request failed.', ['exception' => $failureException]);
+        $this->dispatchTwoFactorAuthenticationEvent(TwoFactorAuthenticationEvents::FAILURE, $request, $token);
 
-        return $this->failureHandler->onAuthenticationFailure($request, $failed);
+        return $this->failureHandler->onAuthenticationFailure($request, $failureException);
     }
 
     private function onSuccess(Request $request, TokenInterface $token, TwoFactorTokenInterface $previousTwoFactorToken): Response

@@ -59,7 +59,7 @@ class TwoFactorProviderPreparationListener
     ) {
         $this->providerRegistry = $providerRegistry;
         $this->preparationRecorder = $preparationRecorder;
-        $this->logger = $logger === null ? new NullLogger() : $logger;
+        $this->logger = $logger ?? new NullLogger();
         $this->firewallName = $firewallName;
         $this->prepareOnLogin = $prepareOnLogin;
         $this->prepareOnAccessDenied = $prepareOnAccessDenied;
@@ -68,7 +68,14 @@ class TwoFactorProviderPreparationListener
     public function onLogin(AuthenticationEvent $event): void
     {
         $token = $event->getAuthenticationToken();
+
+        if ($token instanceof TwoFactorTokenInterface) {
+            $firewallName = $token->getProviderKey();
+            $this->preparationRecorder->startRecording($firewallName);
+        }
+
         if ($this->prepareOnLogin && $this->supports($token)) {
+            /** @var TwoFactorTokenInterface $token */
             // After login, when the token is a TwoFactorTokenInterface, execute preparation
             $this->twoFactorToken = $token;
         }
@@ -78,6 +85,7 @@ class TwoFactorProviderPreparationListener
     {
         $token = $event->getToken();
         if ($this->prepareOnAccessDenied && $this->supports($token)) {
+            /** @var TwoFactorTokenInterface $token */
             // Whenever two-factor authentication is required, execute preparation
             $this->twoFactorToken = $token;
         }
@@ -87,6 +95,7 @@ class TwoFactorProviderPreparationListener
     {
         $token = $event->getToken();
         if ($this->supports($token)) {
+            /** @var TwoFactorTokenInterface $token */
             // Whenever two-factor authentication form is shown, execute preparation
             $this->twoFactorToken = $token;
         }
@@ -102,6 +111,10 @@ class TwoFactorProviderPreparationListener
         }
 
         $providerName = $this->twoFactorToken->getCurrentTwoFactorProvider();
+        if (null === $providerName) {
+            return;
+        }
+
         $firewallName = $this->twoFactorToken->getProviderKey();
 
         try {

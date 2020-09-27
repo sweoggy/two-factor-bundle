@@ -88,11 +88,12 @@ scheb_two_factor:
 # config/packages/security.yaml
 security:
     firewalls:
-        yourFirewallName:
+        your_firewall_name:
             # ...
             two_factor:
                 auth_form_path: /2fa                  # Path or route name of the two-factor form
                 check_path: /2fa_check                # Path or route name of the two-factor code check
+                post_only: false                      # If the check_path should accept the code only as a POST request
                 default_target_path: /                # Where to redirect by default after successful authentication
                 always_use_default_target_path: false # If it should always redirect to default_target_path
                 auth_code_parameter_name: _auth_code  # Name of the parameter for the two-factor authentication code
@@ -128,5 +129,6 @@ security:
 ```
 
 For detailed information on the authentication methods see the individual documentation:
+- [TOTP](providers/totp.md)
 - [Google Authenticator](providers/google.md)
 - [Email code](providers/email.md)

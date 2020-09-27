@@ -8,14 +8,17 @@ assignees: ''
 ---
 
 <!--
-Please check the troubleshooting guide first: https://github.com/scheb/two-factor-bundle/blob/master/Resources/doc/troubleshooting.md
+Please check the troubleshooting guide first: https://github.com/scheb/two-factor-bundle/blob/4.x/Resources/doc/troubleshooting.md
 -->
 
 **Bundle version**: x.y.z
 **Symfony version**: x.y.z
 
 **Description**
-<!-- A clear and concise description of what the bug is. -->
+<!--
+A clear and concise description of what the bug is.
+Please provide the content of your security.yaml.
+-->
 
 **To Reproduce**
 <!--
@@ -26,5 +29,5 @@ Steps to reproduce the behavior:
 4. See error
 -->
 
-**Additional Context**  
+**Additional Context**
 <!-- Optional: Any other context to help understanding the problem: your bundle and security configuration, log messages, screenshots, etc. -->

@@ -18,12 +18,15 @@ class RememberMeServicesDecoratorCompilerPass implements CompilerPassInterface
 {
     private const REMEMBER_ME_LISTENER_ID_PREFIX = 'security.authentication.listener.rememberme.';
 
+    /**
+     * @return void
+     */
     public function process(ContainerBuilder $container)
     {
         // Find all remember-me listener definitions
-        $prefixLength = strlen(self::REMEMBER_ME_LISTENER_ID_PREFIX);
+        $prefixLength = \strlen(self::REMEMBER_ME_LISTENER_ID_PREFIX);
         foreach ($container->getDefinitions() as $definitionId => $definition) {
-            if (self::REMEMBER_ME_LISTENER_ID_PREFIX === substr($definitionId, 0, $prefixLength)) {
+            if (self::REMEMBER_ME_LISTENER_ID_PREFIX === substr((string) $definitionId, 0, $prefixLength)) {
                 $this->decorateRememberMeServices($container, $definition);
             }
         }

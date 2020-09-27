@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use Symfony\Component\Security\Http\AccessMapInterface;
+use Symfony\Component\Security\Http\Firewall\AccessListener;
 use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\Security\Http\Logout\LogoutUrlGenerator;
 
@@ -49,6 +50,10 @@ class TwoFactorAccessDecider
     {
         // Let routes pass, e.g. if a route needs to be callable during two-factor authentication
         list($attributes) = $this->accessMap->getPatterns($request);
+        if (\defined(AccessListener::class.'::PUBLIC_ACCESS') && [AccessListener::PUBLIC_ACCESS] === $attributes) {
+            return true;
+        }
+
         if (null !== $attributes && $this->accessDecisionManager->decide($token, $attributes, $request)) {
             return true;
         }
@@ -65,11 +70,11 @@ class TwoFactorAccessDecider
     private function makeRelativeToBaseUrl(string $logoutPath, Request $request): string
     {
         $baseUrl = $request->getBaseUrl();
-        if (null === $baseUrl || 0 === strlen($baseUrl)) {
+        if (0 === \strlen($baseUrl)) {
             return $logoutPath;
         }
 
-        $pathInfo = substr($logoutPath, strlen($baseUrl));
+        $pathInfo = substr($logoutPath, \strlen($baseUrl));
         if (false === $pathInfo || '' === $pathInfo) {
             return '/';
         }

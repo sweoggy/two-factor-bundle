@@ -14,6 +14,9 @@ class SchebTwoFactorExtension extends Extension
     const DEFAULT_TRUSTED_DEVICE_MANAGER = 'scheb_two_factor.default_trusted_device_manager';
     const DEFAULT_BACKUP_CODE_MANAGER = 'scheb_two_factor.default_backup_code_manager';
 
+    /**
+     * @return void
+     */
     public function load(array $configs, ContainerBuilder $container)
     {
         $configuration = new Configuration();
@@ -136,7 +139,7 @@ class SchebTwoFactorExtension extends Extension
         $codeGeneratorService = $config['email']['code_generator'];
         if ($codeGeneratorService) {
             $container->removeAlias('scheb_two_factor.security.email.code_generator');
-            $container->setAlias('scheb_two_factor.security.email.code_generator', $codeGeneratorService);
+            $container->setAlias('scheb_two_factor.security.email.code_generator', $codeGeneratorService)->setPublic(true);
         }
     }
 

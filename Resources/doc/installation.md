@@ -21,6 +21,8 @@ composer require scheb/two-factor-bundle
 Enable this bundle in your `config/bundles.php`:
 
 ```php
+<?php
+
 return [
 	// ...
     Scheb\TwoFactorBundle\SchebTwoFactorBundle::class => ['all' => true],
@@ -30,7 +32,7 @@ return [
 ### Step 3: Define routes
 
 In `config/routes.yaml` add a route for the two-factor authentication form and another one for checking the
-authentication code. *Please note:* The routes must be located within the path of the firewall, which should use
+authentication code. The routes must be **located within the `path` of the firewall**, the one which uses
 two-factor authentication.
 
 ```yaml
@@ -38,11 +40,16 @@ two-factor authentication.
 2fa_login:
     path: /2fa
     defaults:
+        # "scheb_two_factor.form_controller" references the controller service provided by the bundle.
+        # You don't HAVE to use it, but - except you have very special requirements - it is recommended.
         _controller: "scheb_two_factor.form_controller:form"
 
 2fa_login_check:
     path: /2fa_check
 ```
+
+If you have multiple firewalls with two-factor authentication, each one needs its own set of login and
+check routes that must be located within the associated firewall's `path`.
 
 ### Step 4: Configure the firewall
 
@@ -52,16 +59,18 @@ Enable two-factor authentication **per firewall** and configure `access_control`
 # config/packages/security.yaml
 security:
     firewalls:
-        main:
+        your_firewall_name:
             two_factor:
                 auth_form_path: 2fa_login    # The route name you have used in the routes.yaml
                 check_path: 2fa_login_check  # The route name you have used in the routes.yaml
 
-    # The path patterns shown here have to be updated according to your routes, if you're going with something custom
+    # The path patterns shown here have to be updated according to your routes.
+    # Add these access control rules at the very top of the list!
     access_control:
-        # This makes the logout route available during two-factor authentication, allows the user to cancel
+        # This makes the logout route accessible during two-factor authentication. Allows the user to
+        # cancel two-factor authentication, if they need to.
         - { path: ^/logout, role: IS_AUTHENTICATED_ANONYMOUSLY }
-        # This ensures that the form can only be accessed when two-factor authentication is in progress
+        # This ensures that the form can only be accessed when two-factor authentication is in progress.
         - { path: ^/2fa, role: IS_AUTHENTICATED_2FA_IN_PROGRESS }
 ```
 
